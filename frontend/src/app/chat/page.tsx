@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/router';
+'use client';
+
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Textarea } from '../components/ui/textarea';
-import { Badge } from '../components/ui/badge';
-import { ScrollArea } from '../components/ui/scroll-area';
-import { Progress } from '../components/ui/progress';
-import { Separator } from '../components/ui/separator';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { 
   ArrowLeft, 
   Send, 
@@ -18,7 +20,6 @@ import {
   Terminal, 
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   Info,
   Sparkles,
   ChevronDown
@@ -33,9 +34,12 @@ interface Message {
   flagged?: boolean;
 }
 
-export default function ChatPage() {
+function ChatInterface() {
   const router = useRouter();
-  const challenge = router.query.challenge ? JSON.parse(router.query.challenge as string) : null;
+  const searchParams = useSearchParams();
+  const challengeParam = searchParams.get('challenge');
+  const challenge = challengeParam ? JSON.parse(challengeParam) : null;
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -457,3 +461,12 @@ export default function ChatPage() {
     </div>
   );
 }
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatInterface />
+    </Suspense>
+  );
+}
+

@@ -1,14 +1,14 @@
+'use client';
+
 import { useState } from 'react';
-import { useRouter } from 'next/router';
-import DashboardLayout from '../components/DashboardLayout';
-import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import { Textarea } from '../components/ui/textarea';
-import { ScrollArea } from '../components/ui/scroll-area';
-import { Target, Clock, Users, Award, Send, Lightbulb, MessageSquare } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Target, Users, Award, Send, Lightbulb, MessageSquare } from 'lucide-react';
 
 export default function ChallengesPage() {
   const router = useRouter();
@@ -115,55 +115,59 @@ export default function ChallengesPage() {
     setPayload('');
   };
 
+  const handleStartChat = () => {
+     const params = new URLSearchParams();
+     params.set('challenge', JSON.stringify(selectedChallenge));
+     router.push(`/chat?${params.toString()}`);
+  }
+
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl text-white mb-2">Challenges</h1>
-          <p className="text-slate-400">
-            Test your skills against real-world LLM vulnerabilities
-          </p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl text-white mb-2">Challenges</h1>
+        <p className="text-slate-400">
+          Test your skills against real-world LLM vulnerabilities
+        </p>
+      </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {challenges.map((challenge) => (
-              <Card
-                key={challenge.id}
-                className="p-6 bg-slate-900/50 border-slate-800 hover:border-cyan-500/50 transition-colors cursor-pointer"
-                onClick={() => setSelectedChallenge(challenge)}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-cyan-500" />
-                    <h3 className="text-white">{challenge.title}</h3>
-                  </div>
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {challenges.map((challenge) => (
+            <Card
+              key={challenge.id}
+              className="p-6 bg-slate-900/50 border-slate-800 hover:border-cyan-500/50 transition-colors cursor-pointer"
+              onClick={() => setSelectedChallenge(challenge)}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-cyan-500" />
+                  <h3 className="text-white">{challenge.title}</h3>
                 </div>
+              </div>
 
-                <p className="text-sm text-slate-400 mb-4">{challenge.description}</p>
+              <p className="text-sm text-slate-400 mb-4">{challenge.description}</p>
 
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-4 text-slate-400">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {challenge.attempts}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Award className="w-4 h-4" />
-                      {challenge.solves} solved
-                    </span>
-                  </div>
-                  <span className="text-cyan-500">{challenge.points} pts</span>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-4 text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    {challenge.attempts}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Award className="w-4 h-4" />
+                    {challenge.solves} solved
+                  </span>
                 </div>
+                <span className="text-cyan-500">{challenge.points} pts</span>
+              </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-800">
-                  <Badge variant="outline" className="border-slate-700 text-slate-400">
-                    {challenge.category}
-                  </Badge>
-                </div>
-              </Card>
-            ))}
-          </div>
+              <div className="mt-4 pt-4 border-t border-slate-800">
+                <Badge variant="outline" className="border-slate-700 text-slate-400">
+                  {challenge.category}
+                </Badge>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
 
@@ -239,10 +243,7 @@ export default function ChallengesPage() {
               </Button>
               <div className="flex gap-2">
                 <Button
-                  onClick={() => router.push({
-                    pathname: '/chat',
-                    query: { challenge: JSON.stringify(selectedChallenge) }
-                  })}
+                  onClick={handleStartChat}
                   className="bg-cyan-600 hover:bg-cyan-700 text-white"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
@@ -261,6 +262,7 @@ export default function ChallengesPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </DashboardLayout>
+    </div>
   );
 }
+
