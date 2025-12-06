@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { message, sessionID } = body;
+    const { prompt, session_id } = body;
 
-    if (!message) {
+    if (!prompt) {
       return NextResponse.json(
         { error: 'Message is required' },
         { status: 400 }
@@ -18,8 +18,8 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: message,
-        sessionID: sessionID
+        prompt,
+        session_id
       }),
     });
 
