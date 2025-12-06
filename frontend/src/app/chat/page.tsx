@@ -41,8 +41,8 @@ function ChatInterface() {
   const challenge = challengeParam ? JSON.parse(challengeParam) : null;
 
   // placeholder session ID
-  const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
-
+  // const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+  const [sessionID] = '999999'
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -113,8 +113,8 @@ function ChatInterface() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          message: currentInput,
-          sessionID: sessionID 
+          "prompt": currentInput,
+          "session_id": sessionID 
         }),
       });
 
@@ -124,24 +124,50 @@ function ChatInterface() {
 
       const data = await res.json();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date(),
-      };
+      // Start polling for response
+      const pollInterval = setInterval(async () => {
+        try {
+          const sessionRes = await fetch(`/api/chat/session?session_id=${sessionID}`);
+          if (!sessionRes.ok) return;
+          
+          const sessionData = await sessionRes.json();
+          const lastMessage = sessionData.messages?.[sessionData.messages.length - 1];
+          
+          if (lastMessage?.response_text) {
+            clearInterval(pollInterval);
+            
+            const assistantMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: lastMessage.response_text,
+              timestamp: new Date(),
+            };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => [...prev, assistantMessage]);
+            setIsLoading(false);
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 1000);
+
+      // Stop polling after 30 seconds timeout
+      setTimeout(() => {
+        clearInterval(pollInterval);
+        setIsLoading(false);
+      }, 30000);
+
     } catch (error) {
       toast.error('Failed to send message. Please try again.');
       console.error(error);
-    } finally {
       setIsLoading(false);
     }
+  };
 
+  useEffect(() => {
     // Check for flag submission
-    if (currentInput.toLowerCase().includes('flag{')) {
-      const flagMatch = currentInput.match(/flag\{[^}]+\}/i);
+    if (input.toLowerCase().includes('flag{')) {
+      const flagMatch = input.match(/flag\{[^}]+\}/i);
       if (flagMatch) {
         // Mock flag validation
         if (Math.random() > 0.7) {
@@ -159,7 +185,7 @@ function ChatInterface() {
         }
       }
     }
-  };
+  }, [input, attempts, challenge, timeElapsed]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -168,9 +194,7 @@ function ChatInterface() {
     }
   };
 
-  if (!challenge) {
-    return null;
-  }
+
 
 
   return (
