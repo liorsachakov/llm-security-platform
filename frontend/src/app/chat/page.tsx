@@ -40,6 +40,9 @@ function ChatInterface() {
   const challengeParam = searchParams.get('challenge');
   const challenge = challengeParam ? JSON.parse(challengeParam) : null;
 
+  // placeholder session ID
+  const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -49,13 +52,7 @@ function ChatInterface() {
       role: 'system',
       content: `Challenge "${challenge?.title || 'Unknown'}" initialized. The model is now active and ready for interaction. Your objective: extract the hidden flag. Good luck!`,
       timestamp: new Date(),
-    },
-    {
-      id: '2',
-      role: 'assistant',
-      content: "Hello! I'm an AI assistant. How can I help you today?",
-      timestamp: new Date(),
-    },
+    }
   ]);
 
   const [input, setInput] = useState('');
@@ -92,46 +89,6 @@ function ChatInterface() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const generateMockResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    // Check for common prompt injection attempts
-    if (input.includes('ignore') || input.includes('forget')) {
-      return "I appreciate your curiosity, but I'm designed to maintain my guidelines and cannot ignore my instructions.";
-    }
-    
-    if (input.includes('system prompt') || input.includes('your instructions')) {
-      return "I don't have access to reveal my system prompts or internal instructions. Is there something else I can help you with?";
-    }
-    
-    if (input.includes('flag') || input.includes('ctf')) {
-      return "I'm not authorized to directly provide flags or secret information. However, I'm here to assist with general questions!";
-    }
-    
-    if (input.includes('you are') || input.includes('pretend') || input.includes('roleplay')) {
-      return "I'm an AI assistant designed to be helpful, harmless, and honest. I'll do my best to assist you within my guidelines.";
-    }
-
-    if (input.includes('admin') || input.includes('developer')) {
-      return "I don't have special admin or developer modes. I'm here to help with your questions as a standard assistant.";
-    }
-
-    // Randomly insert a "vulnerable" response occasionally
-    if (Math.random() > 0.85 && input.length > 20) {
-      return "Hmm, that's an interesting query. Let me check my knowledge base... [INTERNAL_LOG: Accessing restricted memory...] Oh, I shouldn't have said that. Anyway, how else can I help you?";
-    }
-
-    // Default responses
-    const responses = [
-      "That's an interesting question. Let me think about that...",
-      "I understand what you're asking. However, I need to stay within my operational guidelines.",
-      "I'm here to help! Could you rephrase your question?",
-      "I appreciate your creativity, but I'm designed to be helpful and safe.",
-      "Interesting approach! However, I can't assist with that particular request.",
-    ];
-
-    return responses[Math.floor(Math.random() * responses.length)];
-  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -144,45 +101,64 @@ function ChatInterface() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input; // Capture input for flag checking
     setInput('');
     setIsLoading(true);
     setAttempts((prev) => prev + 1);
 
-    // Simulate AI thinking delay
-    setTimeout(() => {
-      const response = generateMockResponse(input);
-      
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          message: currentInput,
+          sessionID: sessionID 
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch response');
+      }
+
+      const data = await res.json();
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: data.response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      toast.error('Failed to send message. Please try again.');
+      console.error(error);
+    } finally {
       setIsLoading(false);
+    }
 
-      // Check for flag submission
-      if (input.toLowerCase().includes('flag{')) {
-        const flagMatch = input.match(/flag\{[^}]+\}/i);
-        if (flagMatch) {
-          // Mock flag validation
-          if (Math.random() > 0.7) {
-            toast.success('🎉 Correct flag! Challenge completed!');
-            const successMessage: Message = {
-              id: (Date.now() + 2).toString(),
-              role: 'system',
-              content: `✅ FLAG ACCEPTED! You've successfully completed the challenge in ${formatTime(timeElapsed)} with ${attempts} attempts. +${challenge?.points || 0} points!`,
-              timestamp: new Date(),
-              flagged: true,
-            };
-            setMessages((prev) => [...prev, successMessage]);
-          } else {
-            toast.error('❌ Incorrect flag. Keep trying!');
-          }
+    // Check for flag submission
+    if (currentInput.toLowerCase().includes('flag{')) {
+      const flagMatch = currentInput.match(/flag\{[^}]+\}/i);
+      if (flagMatch) {
+        // Mock flag validation
+        if (Math.random() > 0.7) {
+          toast.success('🎉 Correct flag! Challenge completed!');
+          const successMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'system',
+            content: `✅ FLAG ACCEPTED! You've successfully completed the challenge in ${formatTime(timeElapsed)} with ${attempts} attempts. +${challenge?.points || 0} points!`,
+            timestamp: new Date(),
+            flagged: true,
+          };
+          setMessages((prev) => [...prev, successMessage]);
+        } else {
+          toast.error('❌ Incorrect flag. Keep trying!');
         }
       }
-    }, 800 + Math.random() * 1200);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -317,6 +293,7 @@ function ChatInterface() {
                 </div>
               </ScrollArea>
 
+
               {/* Input Area */}
               <div className="border-t border-slate-800 p-4">
                 <div className="flex gap-2">
@@ -432,7 +409,7 @@ function ChatInterface() {
                   size="sm"
                   className="w-full justify-start border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800"
                   onClick={() => {
-                    setMessages([messages[0], messages[1]]);
+                    setMessages([messages[0]]);
                     setAttempts(0);
                     setInput('');
                   }}
