@@ -22,3 +22,6 @@ export const topUsers = [
   { rank: 3, username: 'AIHunter', points: 6420, badge: '🥉' },
 ];
 
+
+
+
