@@ -103,6 +103,7 @@ export default function ChallengesPage() {
   ];
 
   const handleSubmit = () => {
+    if (!selectedChallenge) return;
     setConsoleOutput((prev) => [
       ...prev,
       `> Input: ${payload}`,
@@ -116,6 +117,7 @@ export default function ChallengesPage() {
   };
 
   const handleStartChat = () => {
+     if (!selectedChallenge) return;
      const params = new URLSearchParams();
      params.set('challenge', JSON.stringify(selectedChallenge));
      router.push(`/chat?${params.toString()}`);

@@ -39,10 +39,7 @@ export default function HeroSection() {
               <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
-          <Link href={{
-            pathname: '/chat',
-            query: { challenge: JSON.stringify(demoChallenge) }
-          }}>
+          <Link href={`/chat?challenge=${encodeURIComponent(JSON.stringify(demoChallenge))}`}>
             <Button size="lg" variant="outline" className="border-cyan-600 text-cyan-400 hover:bg-cyan-600/10">
               <MessageSquare className="w-4 h-4 mr-2" />
               Start Challenge
