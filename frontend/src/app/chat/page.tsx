@@ -41,8 +41,8 @@ function ChatInterface() {
   const challenge = challengeParam ? JSON.parse(challengeParam) : null;
 
   // placeholder session ID
-  // const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
-  const [sessionID] = '999999'
+  const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
