@@ -2,20 +2,35 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { Mail, Lock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { apiLogin } from '@/lib/auth-client';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual authentication
-    router.push('/dashboard');
+    setIsSubmitting(true);
+    try {
+      const user = await apiLogin({ identifier, password });
+      toast.success(`Welcome back, ${user.username}`);
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -31,14 +46,16 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-slate-300">Email</Label>
+            <Label htmlFor="identifier" className="text-slate-300">Email or Username</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
+                id="identifier"
+                type="text"
+                placeholder="owner@demo.local"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </div>
@@ -53,6 +70,8 @@ export default function LoginPage() {
                 type="password"
                 placeholder="••••••••"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
@@ -71,8 +90,9 @@ export default function LoginPage() {
           <Button 
             type="submit" 
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+            disabled={isSubmitting}
           >
-            Sign In
+            {isSubmitting ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
 
@@ -129,6 +149,8 @@ export default function LoginPage() {
     </>
   );
 }
+
+
 
 
 
