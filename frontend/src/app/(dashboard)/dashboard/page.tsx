@@ -1,7 +1,5 @@
 import StatsCards from '@/components/dashboard/StatsCards';
 import ActiveChallengesList from '@/components/dashboard/ActiveChallengesList';
-import MyModelsList from '@/components/dashboard/MyModelsList';
-import RecentActivity from '@/components/dashboard/RecentActivity';
 import TopContributors from '@/components/dashboard/TopContributors';
 
 export default function DashboardPage() {
@@ -10,17 +8,18 @@ export default function DashboardPage() {
       <StatsCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ActiveChallengesList />
-        <MyModelsList />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivity />
-        <TopContributors />
+        <div className="lg:col-span-2">
+          <ActiveChallengesList />
+        </div>
+        <div className="lg:col-span-2">
+          <TopContributors />
+        </div>
       </div>
     </div>
   );
 }
+
+
 
 
 

@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { apiMe } from '@/lib/auth-client';
+import type { PublicUser } from '@/lib/mock-db';
 import {
   User,
   Mail,
@@ -20,15 +23,33 @@ import {
 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const [me, setMe] = useState<PublicUser | null>(null);
+  const [loadingMe, setLoadingMe] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const user = await apiMe();
+      if (!cancelled) setMe(user);
+      if (!cancelled) setLoadingMe(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const userProfile = {
-    username: 'YouAreHere',
-    email: 'you@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=User',
+    username: me?.username ?? 'YouAreHere',
+    email: me?.email ?? 'you@example.com',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me?.username ?? 'User')}`,
     joinDate: '2025-09-01',
-    role: 'Attacker',
+    role: me?.role ?? 'Attacker',
     rank: 8,
-    badge: 'Intermediate',
-    bio: 'Security researcher focused on LLM vulnerabilities and prompt injection techniques.',
+    badge: me?.role === 'Owner' ? 'Owner' : 'Intermediate',
+    bio:
+      me?.role === 'Owner'
+        ? 'Platform owner with full access to model management and admin views.'
+        : 'Security researcher focused on LLM vulnerabilities and prompt injection techniques.',
   };
 
   const stats = {
@@ -94,6 +115,9 @@ export default function ProfilePage() {
     <div className="space-y-6">
       {/* Profile Header */}
       <Card className="p-6 bg-slate-900/50 border-slate-800">
+        {loadingMe && (
+          <div className="text-slate-400 text-sm mb-4">Loading profile…</div>
+        )}
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-6">
             <Avatar className="w-24 h-24 border-4 border-cyan-500">
@@ -318,6 +342,8 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
 
 
 
