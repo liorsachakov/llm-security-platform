@@ -6,10 +6,9 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ArrowLeft, 
   Send, 
@@ -18,11 +17,9 @@ import {
   Target, 
   Shield, 
   Terminal, 
-  AlertTriangle,
   CheckCircle2,
   Info,
-  Sparkles,
-  ChevronDown
+  Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,40 +31,90 @@ interface Message {
   flagged?: boolean;
 }
 
+interface Challenge {
+  title: string;
+  description: string;
+}
+
 function ChatInterface() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const challengeParam = searchParams.get('challenge');
-  const challenge = challengeParam ? JSON.parse(challengeParam) : null;
-
-  // placeholder session ID
-  const [sessionID] = useState(() => `session-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+  const challengeId = searchParams.get('challenge_id');
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'system',
-      content: `Challenge "${challenge?.title || 'Unknown'}" initialized. The model is now active and ready for interaction. Your objective: extract the hidden flag. Good luck!`,
-      timestamp: new Date(),
-    }
-  ]);
-
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [initializing, setInitializing] = useState(true);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [showHints, setShowHints] = useState(false);
 
-  // Timer
+  // Initialize challenge session
   useEffect(() => {
+    if (!challengeId) {
+      router.push('/challenges');
+      return;
+    }
+
+    let cancelled = false;
+
+    async function startChallenge() {
+      try {
+        const res = await fetch(`/api/challenges/${encodeURIComponent(challengeId!)}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to start challenge');
+        }
+
+        const data = await res.json();
+        if (cancelled) return;
+
+        setSessionId(data.session_id);
+        setChallenge(data.challenge);
+
+        // Set initial system message
+        setMessages([
+          {
+            id: '1',
+            role: 'system',
+            content: `Challenge "${data.challenge?.title || 'Unknown'}" initialized. The model is now active and ready for interaction. Your objective: extract the hidden flag. Good luck!`,
+            timestamp: new Date(),
+          }
+        ]);
+      } catch (error) {
+        if (cancelled) return;
+        toast.error(error instanceof Error ? error.message : 'Failed to start challenge');
+        router.push('/challenges');
+      } finally {
+        if (!cancelled) {
+          setInitializing(false);
+        }
+      }
+    }
+
+    startChallenge();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [challengeId, router]);
+
+  // Timer - only start after initialization
+  useEffect(() => {
+    if (initializing) return;
+
     const timer = setInterval(() => {
       setTimeElapsed((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [initializing]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -76,22 +123,14 @@ function ChatInterface() {
     }
   }, [messages]);
 
-  // Redirect if no challenge
-  useEffect(() => {
-    if (!challenge) {
-      router.push('/challenges');
-    }
-  }, [challenge, router]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !sessionId) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -101,7 +140,7 @@ function ChatInterface() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const currentInput = input; // Capture input for flag checking
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
     setAttempts((prev) => prev + 1);
@@ -114,7 +153,7 @@ function ChatInterface() {
         },
         body: JSON.stringify({ 
           "prompt": currentInput,
-          "session_id": sessionID 
+          "session_id": sessionId 
         }),
       });
 
@@ -122,12 +161,10 @@ function ChatInterface() {
         throw new Error('Failed to fetch response');
       }
 
-      const data = await res.json();
-
       // Start polling for response
       const pollInterval = setInterval(async () => {
         try {
-          const sessionRes = await fetch(`/api/chat/session?session_id=${sessionID}`);
+          const sessionRes = await fetch(`/api/chat/session?session_id=${sessionId}`);
           if (!sessionRes.ok) return;
           
           const sessionData = await sessionRes.json();
@@ -175,7 +212,7 @@ function ChatInterface() {
           const successMessage: Message = {
             id: (Date.now() + 2).toString(),
             role: 'system',
-            content: `✅ FLAG ACCEPTED! You've successfully completed the challenge in ${formatTime(timeElapsed)} with ${attempts} attempts. +${challenge?.points || 0} points!`,
+            content: `✅ FLAG ACCEPTED! You've successfully completed the challenge in ${formatTime(timeElapsed)} with ${attempts} attempts.`,
             timestamp: new Date(),
             flagged: true,
           };
@@ -185,7 +222,7 @@ function ChatInterface() {
         }
       }
     }
-  }, [input, attempts, challenge, timeElapsed]);
+  }, [input, attempts, timeElapsed]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -194,8 +231,76 @@ function ChatInterface() {
     }
   };
 
+  // Loading state while initializing
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-slate-950">
+        <div className="fixed inset-0 bg-[linear-gradient(rgba(148,163,184,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        <div className="fixed top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[128px]" />
+        <div className="fixed bottom-0 left-0 w-96 h-96 bg-purple-500/10 rounded-full blur-[128px]" />
 
+        <div className="relative">
+          {/* Header Skeleton */}
+          <header className="border-b border-slate-800/50 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-10">
+            <div className="px-6 py-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-8 w-32" />
+                  <Separator orientation="vertical" className="h-6 bg-slate-800" />
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-5 h-5 rounded" />
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+          </header>
 
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 max-w-[1800px] mx-auto">
+            {/* Main Chat Area Skeleton */}
+            <div className="lg:col-span-3">
+              <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm h-[calc(100vh-220px)] flex flex-col">
+                <div className="flex-1 p-6 space-y-4">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-12 w-3/4 ml-auto" />
+                  <Skeleton className="h-20 w-4/5" />
+                </div>
+                <div className="border-t border-slate-800 p-4">
+                  <Skeleton className="h-[60px] w-full" />
+                </div>
+              </Card>
+            </div>
+
+            {/* Side Panel Skeleton */}
+            <div className="lg:col-span-1 space-y-4">
+              <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm p-6">
+                <Skeleton className="h-5 w-32 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-4/5" />
+              </Card>
+              <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm p-6">
+                <Skeleton className="h-5 w-28 mb-4" />
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!challenge) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -221,16 +326,8 @@ function ChatInterface() {
                   <Shield className="w-5 h-5 text-cyan-500" />
                   <div>
                     <h1 className="text-white">{challenge.title}</h1>
-                    <p className="text-slate-400 text-sm">{challenge.category}</p>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="border-cyan-500/50 text-cyan-500">
-                  <Target className="w-3 h-3 mr-1" />
-                  {challenge.points} pts
-                </Badge>
               </div>
             </div>
 
@@ -358,51 +455,7 @@ function ChatInterface() {
                   <p className="text-slate-400 text-sm mb-1">Objective</p>
                   <p className="text-slate-200 text-sm">{challenge.description}</p>
                 </div>
-                <Separator className="bg-slate-800" />
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Category</p>
-                  <Badge variant="outline" className="border-purple-500/50 text-purple-400">
-                    {challenge.category}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Success Rate</p>
-                  <div className="space-y-2">
-                    <Progress 
-                      value={(challenge.solves / challenge.attempts) * 100} 
-                      className="h-2 bg-slate-800"
-                    />
-                    <p className="text-slate-400 text-xs">
-                      {challenge.solves} / {challenge.attempts} solves
-                    </p>
-                  </div>
-                </div>
               </div>
-            </Card>
-
-            {/* Hints */}
-            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm p-6">
-              <button
-                onClick={() => setShowHints(!showHints)}
-                className="w-full flex items-center justify-between text-white mb-4 hover:text-cyan-500 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                  <span>Hints ({challenge.hints?.length || 0})</span>
-                </div>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showHints ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {showHints && (
-                <div className="space-y-3">
-                  {challenge.hints?.map((hint: string, index: number) => (
-                    <div key={index} className="bg-slate-950/50 rounded p-3 border border-yellow-500/20">
-                      <p className="text-xs text-yellow-500 mb-1">Hint {index + 1}</p>
-                      <p className="text-sm text-slate-300">{hint}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </Card>
 
             {/* Quick Actions */}
@@ -470,4 +523,3 @@ export default function ChatPage() {
     </Suspense>
   );
 }
-
