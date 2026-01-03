@@ -17,17 +17,13 @@ export function useChatSession(challengeId: string | null) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const initialMessageRef = useRef<Message | null>(null);
 
-  // Track if we've already started to prevent double calls in Strict Mode
   const hasStartedRef = useRef(false);
 
-  // Initialize challenge session
   useEffect(() => {
     if (!challengeId) {
       router.push('/challenges');
       return;
     }
-
-    // Prevent double API call - ref persists across Strict Mode remount
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
