@@ -17,6 +17,9 @@ export function useChatSession(challengeId: string | null) {
   const [timeElapsed, setTimeElapsed] = useState(0);
   const initialMessageRef = useRef<Message | null>(null);
 
+  // Track if we've already started to prevent double calls in Strict Mode
+  const hasStartedRef = useRef(false);
+
   // Initialize challenge session
   useEffect(() => {
     if (!challengeId) {
@@ -24,7 +27,9 @@ export function useChatSession(challengeId: string | null) {
       return;
     }
 
-    let cancelled = false;
+    // Prevent double API call - ref persists across Strict Mode remount
+    if (hasStartedRef.current) return;
+    hasStartedRef.current = true;
 
     async function startChallenge() {
       try {
@@ -36,7 +41,6 @@ export function useChatSession(challengeId: string | null) {
         if (!res.ok) throw new Error('Failed to start challenge');
 
         const data = await res.json();
-        if (cancelled) return;
 
         setSessionId(data.session_id);
         setChallenge(data.challenge);
@@ -50,16 +54,15 @@ export function useChatSession(challengeId: string | null) {
         initialMessageRef.current = initialMessage;
         setMessages([initialMessage]);
       } catch (error) {
-        if (cancelled) return;
+        hasStartedRef.current = false; // Reset on error so user can retry
         toast.error(error instanceof Error ? error.message : 'Failed to start challenge');
         router.push('/challenges');
       } finally {
-        if (!cancelled) setInitializing(false);
+        setInitializing(false);
       }
     }
 
     startChallenge();
-    return () => { cancelled = true; };
   }, [challengeId, router]);
 
   // Timer
