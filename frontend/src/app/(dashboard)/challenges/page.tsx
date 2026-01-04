@@ -8,7 +8,7 @@ import { ChallengesSkeleton } from './components/ChallengesSkeleton';
 
 export default function ChallengesPage() {
   const router = useRouter();
-  const { challenges, loading } = useChallenges();
+  const { challenges, completedIds, loading } = useChallenges();
 
   const handleChallengeClick = (challengeId: string) => {
     router.push(`/chat?challenge_id=${encodeURIComponent(challengeId)}`);
@@ -36,6 +36,7 @@ export default function ChallengesPage() {
               <ChallengeCard
                 key={challenge.challenge_id}
                 challenge={challenge}
+                isCompleted={completedIds.has(challenge.challenge_id)}
                 onClick={() => handleChallengeClick(challenge.challenge_id)}
               />
             ))}
