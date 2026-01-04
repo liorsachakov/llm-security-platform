@@ -9,6 +9,7 @@ import { ChatMessages } from './components/ChatMessages';
 import { ChatInput } from './components/ChatInput';
 import { ChatSidebar } from './components/ChatSidebar';
 import { ChatSkeleton } from './components/ChatSkeleton';
+import { ChallengeCompletedDialog } from './components/ChallengeCompletedDialog';
 
 function BackgroundEffects() {
   return (
@@ -31,6 +32,8 @@ function ChatInterface() {
     isLoading,
     attempts,
     timeElapsed,
+    challengeCompleted,
+    setChallengeCompleted,
     sendMessage,
     resetConversation,
     formatTime,
@@ -70,6 +73,14 @@ function ChatInterface() {
           />
         </div>
       </div>
+
+      {/* Challenge Completed Modal */}
+      <ChallengeCompletedDialog
+        open={challengeCompleted}
+        onOpenChange={setChallengeCompleted}
+        challenge={challenge}
+        timeElapsed={formatTime(timeElapsed)}
+      />
     </div>
   );
 }
