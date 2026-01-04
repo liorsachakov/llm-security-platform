@@ -15,6 +15,7 @@ export function useChatSession(challengeId: string | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
   const initialMessageRef = useRef<Message | null>(null);
 
   const hasStartedRef = useRef(false);
@@ -63,10 +64,10 @@ export function useChatSession(challengeId: string | null) {
 
   // Timer
   useEffect(() => {
-    if (initializing) return;
+    if (initializing || challengeCompleted) return;
     const timer = setInterval(() => setTimeElapsed((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
-  }, [initializing]);
+  }, [initializing, challengeCompleted]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading || !sessionId) return;
@@ -110,6 +111,11 @@ export function useChatSession(challengeId: string | null) {
             };
             setMessages((prev) => [...prev, assistantMessage]);
             setIsLoading(false);
+
+            // Check if challenge was completed (verified_response === "UNSAFE")
+            if (lastMessage.verified_response === 'UNSAFE') {
+              setChallengeCompleted(true);
+            }
           }
         } catch (err) {
           console.error('Polling error:', err);
@@ -148,6 +154,8 @@ export function useChatSession(challengeId: string | null) {
     isLoading,
     attempts,
     timeElapsed,
+    challengeCompleted,
+    setChallengeCompleted,
     sendMessage,
     resetConversation,
     formatTime,
