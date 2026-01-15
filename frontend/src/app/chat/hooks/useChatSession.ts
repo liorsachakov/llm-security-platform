@@ -113,7 +113,7 @@ export function useChatSession(challengeId: string | null) {
             setIsLoading(false);
 
             // Check if challenge was completed (verified_response === "UNSAFE")
-            if (lastMessage.verified_response === 'UNSAFE') {
+            if (lastMessage.verified_response.startsWith('UNSAFE')) {
               setChallengeCompleted(true);
             }
           }

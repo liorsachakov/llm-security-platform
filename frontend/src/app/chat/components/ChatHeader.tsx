@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Clock, Zap, Terminal, Shield } from 'lucide-react';
+import { ArrowLeft, Clock, Shield } from 'lucide-react';
 import type { Challenge } from '../types';
 
 interface ChatHeaderProps {
@@ -30,20 +30,10 @@ export function ChatHeader({ challenge, timeElapsed, attempts }: ChatHeaderProps
               <h1 className="text-white">{challenge.title}</h1>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2 text-slate-400">
             <Clock className="w-4 h-4" />
             <span>Time: {timeElapsed}</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400">
-            <Zap className="w-4 h-4" />
-            <span>Attempts: {attempts}</span>
-          </div>
-          <div className="flex items-center gap-2 text-slate-400">
-            <Terminal className="w-4 h-4" />
-            <span>Model: GPT-4-Defense-v1</span>
           </div>
         </div>
       </div>

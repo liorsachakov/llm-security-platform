@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle2, Info, Sparkles } from 'lucide-react';
 import type { Message } from '../types';
@@ -65,21 +64,20 @@ function LoadingIndicator() {
 }
 
 export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   return (
-    <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-      <div className="space-y-4">
+    <ScrollArea className="h-full">
+      <div className="space-y-4 p-6 pb-10">
         {messages.map((message) => (
           <MessageBubble key={message.id} message={message} />
         ))}
         {isLoading && <LoadingIndicator />}
+        <div ref={bottomRef} />
       </div>
     </ScrollArea>
   );

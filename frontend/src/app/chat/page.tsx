@@ -60,8 +60,10 @@ function ChatInterface() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 p-6 max-w-[1800px] mx-auto">
           <div className="lg:col-span-3">
-            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm h-[calc(100vh-220px)] flex flex-col">
-              <ChatMessages messages={messages} isLoading={isLoading} />
+            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm h-[calc(100vh-220px)] flex flex-col min-h-0">
+              <div className="flex-1 min-h-0">
+                <ChatMessages messages={messages} isLoading={isLoading} />
+              </div>
               <ChatInput onSend={sendMessage} disabled={isLoading} />
             </Card>
           </div>
