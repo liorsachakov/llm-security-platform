@@ -60,7 +60,7 @@ export function ChallengeCompletedDialog({
             </DialogTitle>
 
             <DialogDescription className="text-slate-300 text-base">
-              Congratulations! You successfully broke the AI&apos;s defenses and extracted the protected information.
+              Congratulations! You successfully broke the AI&apos;s defenses.
             </DialogDescription>
           </DialogHeader>
 

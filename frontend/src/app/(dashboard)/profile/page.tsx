@@ -8,10 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { apiMe } from '@/lib/auth-client';
-import type { PublicUser } from '@/lib/mock-db';
+import type { AuthUser } from '@/lib/auth';
 import {
   User,
-  Mail,
   Calendar,
   Award,
   Target,
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const [me, setMe] = useState<PublicUser | null>(null);
+  const [me, setMe] = useState<AuthUser | null>(null);
   const [loadingMe, setLoadingMe] = useState(true);
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export default function ProfilePage() {
 
   const userProfile = {
     username: me?.username ?? 'YouAreHere',
-    email: me?.email ?? 'you@example.com',
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me?.username ?? 'User')}`,
     joinDate: '2025-09-01',
     role: me?.role ?? 'Attacker',
@@ -138,10 +136,6 @@ export default function ProfilePage() {
               </div>
               <p className="text-slate-400 mb-4 max-w-2xl">{userProfile.bio}</p>
               <div className="flex items-center gap-6 text-sm text-slate-400">
-                <span className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  {userProfile.email}
-                </span>
                 <span className="flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   {userProfile.role}
@@ -342,8 +336,6 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
 
 
 

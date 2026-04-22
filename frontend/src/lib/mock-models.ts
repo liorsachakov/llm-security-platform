@@ -7,7 +7,6 @@ export type MockModel = {
   uploaded: string; // YYYY-MM-DD
   vulnerabilities: number;
   tests: number;
-  ownerUserId: string;
 };
 
 export const MOCK_MODELS: MockModel[] = [
@@ -20,7 +19,6 @@ export const MOCK_MODELS: MockModel[] = [
     uploaded: "2025-10-10",
     vulnerabilities: 3,
     tests: 156,
-    ownerUserId: "usr_owner_001",
   },
   {
     id: 2,
@@ -31,8 +29,6 @@ export const MOCK_MODELS: MockModel[] = [
     uploaded: "2025-10-15",
     vulnerabilities: 1,
     tests: 45,
-    ownerUserId: "usr_owner_001",
   },
 ];
-
 

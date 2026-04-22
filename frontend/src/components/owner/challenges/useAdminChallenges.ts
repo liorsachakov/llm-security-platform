@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { apiJsonFetch } from "@/lib/client-api";
 import type { AdminChallenge } from "./types";
 
 export function useAdminChallenges() {
@@ -12,9 +13,10 @@ export function useAdminChallenges() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/challenges", { method: "GET", cache: "no-store" });
-      const data = (await res.json()) as { items?: AdminChallenge[]; error?: string };
-      if (!res.ok) throw new Error(data.error || "Failed to load challenges");
+      const data = await apiJsonFetch<{ items?: AdminChallenge[] }>("/api/admin/challenges", {
+        method: "GET",
+        cache: "no-store",
+      });
       setItems(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load challenges");
@@ -28,13 +30,11 @@ export function useAdminChallenges() {
     async (payload: { title: string; description: string; system_prompt: string }) => {
       setCreating(true);
       try {
-        const res = await fetch("/api/admin/challenges", {
+        await apiJsonFetch("/api/admin/challenges", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const data = (await res.json()) as { error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to create challenge");
         toast.success("Challenge created");
         await refresh();
       } catch (err) {
@@ -51,13 +51,11 @@ export function useAdminChallenges() {
     async (challengeId: string, changes: Partial<Pick<AdminChallenge, "title" | "description" | "system_prompt">>) => {
       setUpdating(true);
       try {
-        const res = await fetch(`/api/admin/challenges/${encodeURIComponent(challengeId)}`, {
+        await apiJsonFetch(`/api/admin/challenges/${encodeURIComponent(challengeId)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(changes),
         });
-        const data = (await res.json()) as { error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to update challenge");
         toast.success("Challenge updated");
         await refresh();
       } catch (err) {
@@ -74,11 +72,9 @@ export function useAdminChallenges() {
     async (challengeId: string) => {
       setDeletingId(challengeId);
       try {
-        const res = await fetch(`/api/admin/challenges/${encodeURIComponent(challengeId)}`, {
+        await apiJsonFetch(`/api/admin/challenges/${encodeURIComponent(challengeId)}`, {
           method: "DELETE",
         });
-        const data = (await res.json()) as { error?: string };
-        if (!res.ok) throw new Error(data.error || "Failed to delete challenge");
         toast.success("Challenge deleted");
         await refresh();
       } catch (err) {
@@ -105,5 +101,4 @@ export function useAdminChallenges() {
     deleteChallenge,
   };
 }
-
 

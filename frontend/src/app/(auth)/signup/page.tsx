@@ -1,15 +1,46 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Lock, User, Github } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { Mail, Lock, User, Github, Globe, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { toast } from 'sonner';
+import { apiRegister } from '@/lib/auth-client';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [country, setCountry] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await apiRegister({
+        username,
+        email,
+        password,
+        country,
+        dateOfBirth,
+      });
+      toast.success('Account created. Please sign in.');
+      router.push(`/login?username=${encodeURIComponent(username.trim())}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create account');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       {/* Glow Effect */}
@@ -21,7 +52,7 @@ export default function SignupPage() {
           <p className="text-slate-400">Join the AI security community</p>
         </div>
 
-        <form className="space-y-6">
+        <form onSubmit={handleSignup} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="username" className="text-slate-300">Username</Label>
             <div className="relative">
@@ -31,6 +62,8 @@ export default function SignupPage() {
                 type="text"
                 placeholder="johndoe"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -45,6 +78,8 @@ export default function SignupPage() {
                 type="email"
                 placeholder="your@email.com"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
@@ -59,29 +94,42 @@ export default function SignupPage() {
                 type="password"
                 placeholder="••••••••"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <Label className="text-slate-300">I want to join as</Label>
-            <RadioGroup defaultValue="attacker" className="space-y-3">
-              <div className="flex items-center space-x-2 p-3 rounded-lg border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-colors">
-                <RadioGroupItem value="attacker" id="attacker" className="border-slate-700" />
-                <Label htmlFor="attacker" className="flex-1 cursor-pointer text-white">
-                  <div className="text-sm">Attacker / CTF Participant</div>
-                  <div className="text-xs text-slate-500">Solve challenges and find vulnerabilities</div>
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 p-3 rounded-lg border border-slate-800 bg-slate-950 hover:border-purple-500/50 transition-colors">
-                <RadioGroupItem value="provider" id="provider" className="border-slate-700" />
-                <Label htmlFor="provider" className="flex-1 cursor-pointer text-white">
-                  <div className="text-sm">Model Provider / Contributor</div>
-                  <div className="text-xs text-slate-500">Upload and test your LLMs</div>
-                </Label>
-              </div>
-            </RadioGroup>
+          <div className="space-y-2">
+            <Label htmlFor="country" className="text-slate-300">Country</Label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Input
+                id="country"
+                type="text"
+                placeholder="Israel"
+                className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="dateOfBirth" className="text-slate-300">Date of Birth</Label>
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Input
+                id="dateOfBirth"
+                type="date"
+                className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="flex items-start gap-2">
@@ -94,8 +142,9 @@ export default function SignupPage() {
           <Button 
             type="submit" 
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+            disabled={isSubmitting}
           >
-            Create Account
+            {isSubmitting ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
 
@@ -152,7 +201,6 @@ export default function SignupPage() {
     </>
   );
 }
-
 
 
 

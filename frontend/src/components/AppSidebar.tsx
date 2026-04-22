@@ -16,12 +16,12 @@ import {
 import { Shield, Trophy, Github, LogIn, UserPlus, Home, LayoutDashboard, Swords, Boxes, User, LogOut, Crown, Target } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import type { PublicUser } from "@/lib/mock-db"
+import type { AuthUser } from "@/lib/auth"
 import { apiLogout, apiMe } from "@/lib/auth-client"
 import { toast } from "sonner"
 
 export function AppSidebar() {
-  const [currentUser, setCurrentUser] = useState<PublicUser | null>(null)
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -196,4 +196,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-
