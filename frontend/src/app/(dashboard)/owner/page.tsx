@@ -6,12 +6,13 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { apiMe } from '@/lib/auth-client';
-import type { PublicUser } from '@/lib/mock-db';
+import { apiJsonFetch } from '@/lib/client-api';
+import type { AuthUser } from '@/lib/auth';
 import type { MockModel } from '@/lib/mock-models';
 
 export default function OwnerConsolePage() {
   const router = useRouter();
-  const [user, setUser] = useState<PublicUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [models, setModels] = useState<MockModel[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,9 +26,12 @@ export default function OwnerConsolePage() {
         setLoading(false);
         return;
       }
-      const res = await fetch('/api/models/mine');
-      const data = (await res.json()) as { models: MockModel[] };
-      if (!cancelled) setModels(data.models ?? []);
+      try {
+        const data = await apiJsonFetch<{ models: MockModel[] }>('/api/models/mine');
+        if (!cancelled) setModels(data.models ?? []);
+      } catch {
+        if (!cancelled) setModels([]);
+      }
       if (!cancelled) setLoading(false);
     })();
     return () => {
@@ -77,7 +81,7 @@ export default function OwnerConsolePage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-white text-lg">Signed in as</div>
-            <div className="text-slate-300">{user.username} ({user.email})</div>
+            <div className="text-slate-300">{user.username}</div>
           </div>
           <Badge variant="outline" className="border-amber-500/50 text-amber-500">
             Owner
@@ -125,5 +129,4 @@ export default function OwnerConsolePage() {
     </div>
   );
 }
-
 

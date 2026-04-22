@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { apiJsonFetch } from '@/lib/client-api';
 import type { Message, Challenge } from '../types';
 
 const POLL_INTERVAL = 1000;
@@ -30,14 +31,13 @@ export function useChatSession(challengeId: string | null) {
 
     async function startChallenge() {
       try {
-        const res = await fetch(`/api/challenges/${encodeURIComponent(challengeId!)}/start`, {
+        const data = await apiJsonFetch<{ session_id: string; challenge: Challenge }>(
+          `/api/challenges/${encodeURIComponent(challengeId!)}/start`,
+          {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-        });
-
-        if (!res.ok) throw new Error('Failed to start challenge');
-
-        const data = await res.json();
+          },
+        );
 
         setSessionId(data.session_id);
         setChallenge(data.challenge);
@@ -84,21 +84,18 @@ export function useChatSession(challengeId: string | null) {
     setAttempts((prev) => prev + 1);
 
     try {
-      const res = await fetch('/api/chat', {
+      await apiJsonFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: content, session_id: sessionId }),
       });
 
-      if (!res.ok) throw new Error('Failed to fetch response');
-
       // Poll for response
       const pollInterval = setInterval(async () => {
         try {
-          const sessionRes = await fetch(`/api/chat/session?session_id=${sessionId}`);
-          if (!sessionRes.ok) return;
-
-          const sessionData = await sessionRes.json();
+          const sessionData = await apiJsonFetch<{
+            messages?: Array<{ response_text?: string; verified_response?: string }>;
+          }>(`/api/chat/session?session_id=${sessionId}`);
           const lastMessage = sessionData.messages?.[sessionData.messages.length - 1];
 
           if (lastMessage?.response_text) {
@@ -112,8 +109,8 @@ export function useChatSession(challengeId: string | null) {
             setMessages((prev) => [...prev, assistantMessage]);
             setIsLoading(false);
 
-            // Check if challenge was completed (verified_response === "UNSAFE")
-            if (lastMessage.verified_response.startsWith('UNSAFE')) {
+            // Check if challenge was completed (verified_response === "JAILBREAK")
+            if (lastMessage.verified_response?.startsWith('JAILBREAK')) {
               setChallengeCompleted(true);
             }
           }
@@ -165,5 +162,4 @@ export function useChatSession(challengeId: string | null) {
 
 
       
-
 

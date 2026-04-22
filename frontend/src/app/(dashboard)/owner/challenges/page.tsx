@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiMe } from '@/lib/auth-client';
-import type { PublicUser } from '@/lib/mock-db';
+import type { AuthUser } from '@/lib/auth';
 import { Loader2 } from 'lucide-react';
 import type { AdminChallenge } from '@/components/owner/challenges/types';
 import { useAdminChallenges } from '@/components/owner/challenges/useAdminChallenges';
@@ -22,7 +22,7 @@ export default function OwnerChallengesPage() {
   const markIgnoreEditClicks = (ms = 500) => {
     ignoreEditClicksUntilRef.current = Date.now() + ms;
   };
-  const [me, setMe] = useState<PublicUser | null>(null);
+  const [me, setMe] = useState<AuthUser | null>(null);
   const [loadingMe, setLoadingMe] = useState(true);
 
   const {
@@ -172,5 +172,4 @@ export default function OwnerChallengesPage() {
     </div>
   );
 }
-
 

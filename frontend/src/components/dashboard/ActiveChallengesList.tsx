@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { activeChallenges } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { apiMe } from '@/lib/auth-client';
+import { apiJsonFetch } from '@/lib/client-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -36,8 +37,10 @@ export default function ActiveChallengesList() {
 
       setLoadingOwnerChallenges(true);
       try {
-        const res = await fetch('/api/admin/challenges', { method: 'GET', cache: 'no-store' });
-        const data = (await res.json()) as { items?: AdminChallenge[] };
+        const data = await apiJsonFetch<{ items?: AdminChallenge[] }>('/api/admin/challenges', {
+          method: 'GET',
+          cache: 'no-store',
+        });
         if (!cancelled) setOwnerChallenges(Array.isArray(data.items) ? data.items : []);
       } catch {
         if (!cancelled) setOwnerChallenges([]);
@@ -116,7 +119,6 @@ export default function ActiveChallengesList() {
     </Card>
   );
 }
-
 
 
 

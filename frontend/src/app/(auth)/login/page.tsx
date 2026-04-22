@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Mail, Lock, Github } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, Lock, Github } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,17 +14,24 @@ import { apiLogin } from '@/lib/auth-client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState('');
+  const [nextPath, setNextPath] = useState('/dashboard');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setNextPath(params.get('next') || '/dashboard');
+    setUsername(params.get('username') || '');
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const user = await apiLogin({ identifier, password });
+      const user = await apiLogin({ username, password });
       toast.success(`Welcome back, ${user.username}`);
-      router.push('/dashboard');
+      router.push(nextPath);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Login failed');
@@ -46,16 +53,16 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="identifier" className="text-slate-300">Email or Username</Label>
+            <Label htmlFor="username" className="text-slate-300">Username</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <Input
-                id="identifier"
+                id="username"
                 type="text"
-                placeholder="owner@demo.local"
+                placeholder="admin"
                 className="pl-10 bg-slate-950 border-slate-800 text-white placeholder:text-slate-500"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -149,8 +156,6 @@ export default function LoginPage() {
     </>
   );
 }
-
-
 
 
 
