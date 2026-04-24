@@ -39,7 +39,9 @@ export async function POST(request: Request) {
         "Content-Type": upstream.headers.get("content-type") ?? "application/json",
       },
     });
-  } catch {
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[register] Error:", message);
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
