@@ -97,7 +97,93 @@ yarn build
 yarn start
 ```
 
-This builds an optimized production bundle and starts the Next.js server on port 3000. You can deploy this to any platform that supports Node.js (Vercel, AWS, Docker, a VPS, etc.).
+This builds an optimized production bundle and starts the Next.js server on port 3000. You can deploy this to any platform that supports Node.js (Vercel, AWS Amplify, Docker, a VPS, etc.).
+
+## Deploying to AWS Amplify
+
+AWS Amplify provides a fully managed hosting solution with SSR support for Next.js. Below is a step-by-step guide based on our tested deployment.
+
+### Prerequisites
+
+- An AWS account with the [AWS CLI](https://aws.amazon.com/cli/) configured
+- The backend already deployed (you need the API Gateway URL)
+
+### 1. Create the Amplify App
+
+1. Go to the [AWS Amplify Console](https://console.aws.amazon.com/amplify/)
+2. Click **New app** > **Host web app**
+3. Connect your GitHub repository
+4. When prompted, set the **Root directory** to `frontend` (since the Next.js app lives in a subdirectory)
+
+### 2. Set the Platform to Web Compute (SSR)
+
+Amplify must run in **Web Compute** mode (not static **Web** mode) because this app uses server-side API routes.
+
+If Amplify doesn't auto-detect Next.js SSR, run these AWS CLI commands after creating the app:
+
+```bash
+aws amplify update-app --app-id <YOUR_APP_ID> --platform WEB_COMPUTE --region <YOUR_REGION>
+aws amplify update-branch --app-id <YOUR_APP_ID> --branch-name main --framework "Next.js - SSR" --region <YOUR_REGION>
+```
+
+You can find your App ID in Amplify Console > General settings.
+
+### 3. Configure Environment Variables
+
+In the Amplify Console, go to **Hosting > Environment variables** and add:
+
+| Key | Value |
+|---|---|
+| `AMPLIFY_MONOREPO_APP_ROOT` | `frontend` |
+| `BACKEND_API_ORIGIN` | `https://your-api-gateway-id.execute-api.us-east-1.amazonaws.com` |
+| `BACKEND_API_STAGE` | `prod` |
+
+The `AMPLIFY_MONOREPO_APP_ROOT` variable tells Amplify's framework detection to look inside the `frontend/` directory.
+
+### 4. Configure the Build Spec
+
+Go to **Hosting > Build settings** and set the build spec (`amplify.yml`) to:
+
+```yaml
+version: 1
+applications:
+  - appRoot: frontend
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - corepack enable
+            - yarn install
+        build:
+          commands:
+            - yarn build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - '.yarn/cache/**/*'
+```
+
+Key points:
+- The `applications` array with `appRoot: frontend` is required because the Next.js app is in a subdirectory
+- `corepack enable` activates Yarn 4 (the project uses `packageManager: "yarn@4.12.0"` in `package.json`)
+- Build image should be **Amazon Linux 2023** (required for Next.js 14+)
+
+### 5. Deploy
+
+Trigger a build from the Amplify Console or push to your connected branch. Amplify will automatically build and deploy the app.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `Cannot read 'next' version in package.json` | Ensure `AMPLIFY_MONOREPO_APP_ROOT=frontend` is set in environment variables |
+| `Monorepo spec provided without "applications" key` | Use the `applications` array format in the build spec (see step 4) |
+| `Cannot find package: next` | Add `nodeLinker: node-modules` to `.yarnrc.yml` (Amplify's bundler doesn't support Yarn PnP) |
+| API routes return "Missing backend API configuration" | Ensure `BACKEND_API_ORIGIN` and `BACKEND_API_STAGE` are set in Amplify environment variables. These are inlined at build time via `next.config.js` |
+| 404 on all pages | Verify the platform is `WEB_COMPUTE` (not `WEB`) in General settings |
 
 ## Project Structure
 
