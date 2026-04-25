@@ -46,5 +46,5 @@ jobs:
             const hasApproval = reviews.some(review => review.state === 'APPROVED');
 
             if (!hasApproval) {
-              core.setFailed("No #skipreview comment found AND no approval given.");
+              core.setFailed("No approval given.");
             }
