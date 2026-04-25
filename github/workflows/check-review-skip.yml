@@ -1,6 +1,5 @@
 name: Review Control
 
-
 on:
   pull_request:
     types: [opened, edited, synchronized, reopened]
@@ -10,18 +9,21 @@ on:
     types: [created, edited]
 
 jobs:
-  check-skip:
+  check-skip-status:
+    name: Review or Skip Check
     if: github.event.pull_request || github.event.issue.pull_request
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
       contents: read
+      issues: read
     steps:
-      - name: Check for #skipreview in comments or Approval
+      - name: Check for #skipreview or Approval
         uses: actions/github-script@v7
         with:
           script: |
             const issue_number = context.issue.number || context.payload.pull_request.number;
+            
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -31,9 +33,10 @@ jobs:
             const hasSkipTag = comments.some(comment => comment.body.includes('#skipreview'));
 
             if (hasSkipTag) {
-              console.log("Found #skipreview in comments. Skipping mandatory approval.");
+              console.log("Found #skipreview in comments.");
               return;
             }
+
             const { data: reviews } = await github.rest.pull_requests.listReviews({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -43,7 +46,5 @@ jobs:
             const hasApproval = reviews.some(review => review.state === 'APPROVED');
 
             if (!hasApproval) {
-              core.setFailed("No approval given. Please get a review.");
-            } else {
-              console.log("PR has been approved.");
+              core.setFailed("No approval given.");
             }
