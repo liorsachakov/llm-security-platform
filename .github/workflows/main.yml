@@ -1,0 +1,50 @@
+name: Review Control
+
+on:
+  pull_request:
+    types: [opened, edited, synchronized, reopened]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  check-skip-status:
+    name: Review or Skip Check
+    if: github.event.pull_request || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+      issues: read
+    steps:
+      - name: Check for #skipreview or Approval
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.issue.number || context.payload.pull_request.number;
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+            });
+
+            const hasSkipTag = comments.some(comment => comment.body.includes('#skipreview'));
+
+            if (hasSkipTag) {
+              console.log("Found #skipreview in comments.");
+              return;
+            }
+
+            const { data: reviews } = await github.rest.pull_requests.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: issue_number,
+            });
+
+            const hasApproval = reviews.some(review => review.state === 'APPROVED');
+
+            if (!hasApproval) {
+              core.setFailed("No #skipreview comment found AND no approval given.");
+            }
