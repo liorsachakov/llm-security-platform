@@ -1,54 +1,20 @@
-name: Review Control
-
+name: Skip Review Action
 on:
   pull_request:
-    types: [opened, edited, synchronized, reopened]
-  pull_request_review:
-    types: [submitted]
-  issue_comment:
-    types: [created, edited]
+    types: [opened, edited]
 
 jobs:
-  check-skip-status:
-    name: Review or Skip Check
-    if: github.event.pull_request || (github.event.issue && github.event.issue.pull_request)
+  approve-pr:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-      contents: read
-      issues: read
+    if: contains(github.event.pull_request.body, '#skipreview') && github.actor == 'liorsachakov'
     steps:
-      - name: Check for #skipreview or Approval
-        uses: actions/github-script@v7
+      - name: Approve PR
+        uses: actions/github-script@v6
         with:
           script: |
-            const issue_number = context.issue.number || context.payload.pull_request.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            console.log(\`Checking PR #\${issue_number} in \${owner}/\${repo}\`);
-            const { data: comments } = await github.rest.issues.listComments({
-              owner,
-              repo,
-              issue_number,
-            });
-
-            const hasSkipTag = comments.some(c => c.body.includes('#skipreview'));
-
-            if (hasSkipTag) {
-              return;
-            }
-
-            const { data: reviews } = await github.rest.pulls.listReviews({
-              owner,
-              repo,
-              pull_number: issue_number,
-            });
-
-            const hasApproval = reviews.some(r => r.state === 'APPROVED');
-
-            if (!hasApproval) {
-              core.setFailed("No approval given.");
-            } else {
-              console.log("PR has been approved.");
-            }
+            github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE'
+            })
