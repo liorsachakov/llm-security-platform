@@ -11,7 +11,7 @@ on:
 jobs:
   check-skip-status:
     name: Review or Skip Check
-    if: github.event.pull_request || github.event.issue.pull_request
+    if: github.event.pull_request || (github.event.issue && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -23,28 +23,32 @@ jobs:
         with:
           script: |
             const issue_number = context.issue.number || context.payload.pull_request.number;
-            
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            console.log(\`Checking PR #\${issue_number} in \${owner}/\${repo}\`);
             const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
+              owner,
+              repo,
+              issue_number,
             });
 
-            const hasSkipTag = comments.some(comment => comment.body.includes('#skipreview'));
+            const hasSkipTag = comments.some(c => c.body.includes('#skipreview'));
 
             if (hasSkipTag) {
-              console.log("Found #skipreview in comments.");
               return;
             }
 
-            const { data: reviews } = await github.rest.pull_requests.listReviews({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner,
+              repo,
               pull_number: issue_number,
             });
 
-            const hasApproval = reviews.some(review => review.state === 'APPROVED');
+            const hasApproval = reviews.some(r => r.state === 'APPROVED');
 
             if (!hasApproval) {
               core.setFailed("No approval given.");
+            } else {
+              console.log("PR has been approved.");
             }
