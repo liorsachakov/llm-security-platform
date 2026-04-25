@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 
 export default function StatsCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card className="p-6 bg-slate-900/50 border-slate-800">
         <div className="flex items-start justify-between">
           <div>
@@ -32,20 +32,6 @@ export default function StatsCards() {
           </div>
         </div>
       </Card>
-
-      <Card className="p-6 bg-slate-900/50 border-slate-800">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm text-slate-400 mb-1">Models Tested</p>
-            <p className="text-3xl text-white">5</p>
-            <p className="text-xs text-amber-500 mt-1">2 active</p>
-          </div>
-          <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-amber-500" />
-          </div>
-        </div>
-      </Card>
-
       <Card className="p-6 bg-slate-900/50 border-slate-800">
         <div className="flex items-start justify-between">
           <div>

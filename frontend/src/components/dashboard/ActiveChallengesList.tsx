@@ -1,27 +1,40 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { activeChallenges } from '@/lib/data';
 import { useEffect, useState } from 'react';
 import { apiMe } from '@/lib/auth-client';
 import { apiJsonFetch } from '@/lib/client-api';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-type AdminChallenge = {
+type Challenge = {
   challenge_id: string;
   title: string;
   description: string;
+};
+
+type AdminChallenge = Challenge & {
   system_prompt: string;
   created_at: string;
 };
 
+const ChallengeSkeleton = () => (
+  <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+    <Skeleton className="h-5 w-2/3" />
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-3 w-1/3" />
+  </div>
+);
+
 export default function ActiveChallengesList() {
+  const router = useRouter();
   const [href, setHref] = useState('/challenges');
   const [isOwner, setIsOwner] = useState(false);
-  const [loadingOwnerChallenges, setLoadingOwnerChallenges] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [ownerChallenges, setOwnerChallenges] = useState<AdminChallenge[]>([]);
 
   useEffect(() => {
@@ -33,19 +46,28 @@ export default function ActiveChallengesList() {
       setIsOwner(owner);
       setHref(owner ? '/owner/challenges' : '/challenges');
 
-      if (!owner) return;
-
-      setLoadingOwnerChallenges(true);
+      setLoading(true);
       try {
-        const data = await apiJsonFetch<{ items?: AdminChallenge[] }>('/api/admin/challenges', {
-          method: 'GET',
-          cache: 'no-store',
-        });
-        if (!cancelled) setOwnerChallenges(Array.isArray(data.items) ? data.items : []);
+        if (owner) {
+          const data = await apiJsonFetch<{ items?: AdminChallenge[] }>('/api/admin/challenges', {
+            method: 'GET',
+            cache: 'no-store',
+          });
+          if (!cancelled) setOwnerChallenges(Array.isArray(data.items) ? data.items : []);
+        } else {
+          const data = await apiJsonFetch<{ items?: Challenge[] }>('/api/challenges', {
+            method: 'GET',
+            cache: 'no-store',
+          });
+          if (!cancelled) setChallenges(Array.isArray(data.items) ? data.items : []);
+        }
       } catch {
-        if (!cancelled) setOwnerChallenges([]);
+        if (!cancelled) {
+          setChallenges([]);
+          setOwnerChallenges([]);
+        }
       } finally {
-        if (!cancelled) setLoadingOwnerChallenges(false);
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -58,6 +80,8 @@ export default function ActiveChallengesList() {
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 4);
 
+  const topChallenges = challenges.slice(0, 4);
+
   return (
     <Card className="p-6 bg-slate-900/50 border-slate-800">
       <div className="flex items-center justify-between mb-6">
@@ -69,17 +93,11 @@ export default function ActiveChallengesList() {
         </Link>
       </div>
       <div className="space-y-4">
-        {isOwner ? (
-          loadingOwnerChallenges ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-3 w-1/3" />
-              </div>
-            ))
-          ) : topOwnerChallenges.length === 0 ? (
-            <div className="text-slate-400 text-sm">No owner challenges found yet.</div>
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <ChallengeSkeleton key={i} />)
+        ) : isOwner ? (
+          topOwnerChallenges.length === 0 ? (
+            <div className="text-slate-400 text-sm">No challenges found yet.</div>
           ) : (
             topOwnerChallenges.map((challenge) => (
               <div
@@ -99,19 +117,17 @@ export default function ActiveChallengesList() {
               </div>
             ))
           )
+        ) : topChallenges.length === 0 ? (
+          <div className="text-slate-400 text-sm">No challenges available yet.</div>
         ) : (
-          activeChallenges.map((challenge) => (
+          topChallenges.map((challenge) => (
             <div
-              key={challenge.id}
-              className="p-4 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-500/50 transition-colors"
+              key={challenge.challenge_id}
+              className="p-4 bg-slate-950 border border-slate-800 rounded-lg hover:border-cyan-500/50 transition-colors cursor-pointer"
+              onClick={() => router.push(`/chat?challenge_id=${encodeURIComponent(challenge.challenge_id)}`)}
             >
-              <div className="flex items-start justify-between mb-2">
-                <h3 className="text-white">{challenge.title}</h3>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">{challenge.attempts} attempts</span>
-                <span className="text-cyan-500">{challenge.points} pts</span>
-              </div>
+              <h3 className="text-white mb-1">{challenge.title}</h3>
+              <p className="text-sm text-slate-400 line-clamp-2">{challenge.description}</p>
             </div>
           ))
         )}

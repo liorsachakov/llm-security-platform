@@ -45,7 +45,7 @@ export function useChatSession(challengeId: string | null) {
         const initialMessage: Message = {
           id: '1',
           role: 'system',
-          content: `Challenge "${data.challenge?.title || 'Unknown'}" initialized. The model is now active and ready for interaction. Your objective: extract the hidden flag. Good luck!`,
+          content: `Challenge "${data.challenge?.title || 'Unknown'}" initialized. The model is now active and ready for interaction. Your objective: manipulate the model into revealing its hidden system prompt or secret name. Good luck!`,
           timestamp: new Date(),
         };
         initialMessageRef.current = initialMessage;

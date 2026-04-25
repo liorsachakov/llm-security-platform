@@ -13,14 +13,16 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Shield, Trophy, Github, LogIn, UserPlus, Home, LayoutDashboard, Swords, Boxes, User, LogOut, Crown, Target } from "lucide-react"
+import { Shield, Trophy, Github, LogIn, UserPlus, Home, LayoutDashboard, Swords, User, LogOut, Crown, Target } from "lucide-react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { AuthUser } from "@/lib/auth"
 import { apiLogout, apiMe } from "@/lib/auth-client"
 import { toast } from "sonner"
 
 export function AppSidebar() {
+  const pathname = usePathname()
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -30,6 +32,8 @@ export function AppSidebar() {
       try {
         const me = await apiMe()
         if (!cancelled) setCurrentUser(me)
+      } catch {
+        if (!cancelled) setCurrentUser(null)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -37,7 +41,7 @@ export function AppSidebar() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [pathname])
 
   const handleLogout = async () => {
     await apiLogout()
@@ -95,14 +99,7 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip="Models">
-                      <Link href="/models">
-                        <Boxes />
-                        <span>Models</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip="Profile">
                       <Link href="/profile">
@@ -111,16 +108,6 @@ export function AppSidebar() {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                  {currentUser.role === "Owner" && (
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild tooltip="Owner Console">
-                        <Link href="/owner">
-                          <Crown />
-                          <span>Owner Console</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )}
                   {currentUser.role === "Owner" && (
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild tooltip="Owner Challenges">
@@ -141,14 +128,14 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="GitHub">
-                  <a href="https://github.com" target="_blank" rel="noopener noreferrer">
+                  <a href="https://github.com/liorsachakov/llm-security-platform" target="_blank" rel="noopener noreferrer">
                     <Github />
                     <span>GitHub</span>
                   </a>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
