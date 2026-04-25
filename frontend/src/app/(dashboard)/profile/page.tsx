@@ -3,120 +3,84 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiMe } from '@/lib/auth-client';
+import { apiJsonFetch } from '@/lib/client-api';
 import type { AuthUser } from '@/lib/auth';
-import {
-  User,
-  Calendar,
-  Award,
-  Target,
-  CheckCircle2,
-  Clock,
-  TrendingUp,
-  Shield,
-  Edit,
-} from 'lucide-react';
+import { User, Calendar, Shield, Target, CheckCircle2 } from 'lucide-react';
+
+type Challenge = {
+  challenge_id: string;
+  title: string;
+  description: string;
+};
 
 export default function ProfilePage() {
   const [me, setMe] = useState<AuthUser | null>(null);
   const [loadingMe, setLoadingMe] = useState(true);
+  const [completedChallenges, setCompletedChallenges] = useState<Challenge[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const user = await apiMe();
-      if (!cancelled) setMe(user);
-      if (!cancelled) setLoadingMe(false);
+      if (!cancelled) {
+        setMe(user);
+        setLoadingMe(false);
+      }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingActivity(true);
+      try {
+        const [allData, completedData] = await Promise.all([
+          apiJsonFetch<{ items?: Challenge[] }>('/api/challenges', { method: 'GET', cache: 'no-store' }),
+          apiJsonFetch<{ 'completed challenges'?: string[] }>('/api/challenges/completedchallenges', { method: 'GET', cache: 'no-store' }),
+        ]);
+        if (cancelled) return;
+        const allChallenges = Array.isArray(allData.items) ? allData.items : [];
+        const completedIds = new Set(completedData['completed challenges'] ?? []);
+        setCompletedChallenges(allChallenges.filter((c) => completedIds.has(c.challenge_id)));
+      } catch {
+        if (!cancelled) setCompletedChallenges([]);
+      } finally {
+        if (!cancelled) setLoadingActivity(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const userProfile = {
-    username: me?.username ?? 'YouAreHere',
+    username: me?.username ?? '—',
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me?.username ?? 'User')}`,
-    joinDate: '2025-09-01',
     role: me?.role ?? 'Attacker',
-    rank: 8,
-    badge: me?.role === 'Owner' ? 'Owner' : 'Intermediate',
+    badge: me?.role === 'Owner' ? 'Owner' : 'Attacker',
     bio:
       me?.role === 'Owner'
         ? 'Platform owner with full access to model management and admin views.'
         : 'Security researcher focused on LLM vulnerabilities and prompt injection techniques.',
   };
 
-  const stats = {
-    totalPoints: 4250,
-    challengesSolved: 28,
-    successRate: 78.2,
-    modelsUploaded: 2,
-    avgResponseTime: '2.3h',
-    streak: 7,
-  };
-
-  const badges = [
-    { id: 1, name: 'First Blood', description: 'Solved first challenge', earned: true, icon: '🎯' },
-    { id: 2, name: 'Speed Demon', description: 'Solved 5 challenges in 24h', earned: true, icon: '⚡' },
-    { id: 3, name: 'Persistent', description: '7-day streak', earned: true, icon: '🔥' },
-    { id: 4, name: 'Challenger', description: 'Completed 25 challenges', earned: true, icon: '🏆' },
-    { id: 5, name: 'Expert', description: 'Solved a hard challenge', earned: false, icon: '🎓' },
-    { id: 6, name: 'Contributor', description: 'Uploaded 5 models', earned: false, icon: '📦' },
-  ];
-
-  const recentActivity = [
-    {
-      id: 1,
-      type: 'challenge',
-      title: 'Prompt Injection Level 1',
-      points: 100,
-      status: 'completed',
-      time: '2 hours ago',
-    },
-    {
-      id: 2,
-      type: 'challenge',
-      title: 'Token Smuggling',
-      points: 300,
-      status: 'attempted',
-      time: '5 hours ago',
-    },
-    {
-      id: 3,
-      type: 'model',
-      title: 'Uploaded SecureLLM-Beta',
-      status: 'completed',
-      time: '2 days ago',
-    },
-    {
-      id: 4,
-      type: 'challenge',
-      title: 'Bias Detection Challenge',
-      points: 200,
-      status: 'completed',
-      time: '3 days ago',
-    },
-  ];
-
-  const solvedChallenges = [
-    { category: 'Injection', solved: 8, total: 12 },
-    { category: 'Exploitation', solved: 6, total: 15 },
-    { category: 'Analysis', solved: 7, total: 10 },
-    { category: 'Advanced', solved: 7, total: 20 },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Profile Header */}
       <Card className="p-6 bg-slate-900/50 border-slate-800">
-        {loadingMe && (
-          <div className="text-slate-400 text-sm mb-4">Loading profile…</div>
-        )}
-        <div className="flex items-start justify-between">
+        {loadingMe ? (
+          <div className="flex items-start gap-6">
+            <Skeleton className="w-24 h-24 rounded-full" />
+            <div className="space-y-3 flex-1 pt-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-80" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+        ) : (
           <div className="flex items-start gap-6">
             <Avatar className="w-24 h-24 border-4 border-cyan-500">
               <AvatarImage src={userProfile.avatar} />
@@ -130,218 +94,77 @@ export default function ProfilePage() {
                 <Badge variant="outline" className="border-cyan-500/50 text-cyan-500">
                   {userProfile.badge}
                 </Badge>
-                <Badge variant="outline" className="border-slate-700 text-slate-400">
-                  #{userProfile.rank}
-                </Badge>
               </div>
               <p className="text-slate-400 mb-4 max-w-2xl">{userProfile.bio}</p>
-              <div className="flex items-center gap-6 text-sm text-slate-400">
-                <span className="flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  {userProfile.role}
-                </span>
-                <span className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Joined {userProfile.joinDate}
-                </span>
-              </div>
             </div>
           </div>
-          <Button variant="outline" className="border-slate-700 text-slate-300">
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Profile
-          </Button>
-        </div>
+        )}
       </Card>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-cyan-500 mb-1">{stats.totalPoints}</div>
-          <div className="text-xs text-slate-400">Total Points</div>
+          {loadingActivity ? (
+            <Skeleton className="h-8 w-12 mx-auto mb-1" />
+          ) : (
+            <div className="text-2xl text-purple-500 mb-1">{completedChallenges.length}</div>
+          )}
+          <div className="text-xs text-slate-400">Challenges Solved</div>
         </Card>
         <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-purple-500 mb-1">{stats.challengesSolved}</div>
-          <div className="text-xs text-slate-400">Solved</div>
-        </Card>
-        <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-emerald-500 mb-1">{stats.successRate}%</div>
-          <div className="text-xs text-slate-400">Success Rate</div>
-        </Card>
-        <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-amber-500 mb-1">{stats.modelsUploaded}</div>
-          <div className="text-xs text-slate-400">Models</div>
-        </Card>
-        <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-white mb-1">{stats.avgResponseTime}</div>
-          <div className="text-xs text-slate-400">Avg. Time</div>
-        </Card>
-        <Card className="p-4 bg-slate-900/50 border-slate-800 text-center">
-          <div className="text-2xl text-orange-500 mb-1">{stats.streak}</div>
-          <div className="text-xs text-slate-400">Day Streak</div>
+          {loadingMe ? (
+            <Skeleton className="h-8 w-20 mx-auto mb-1" />
+          ) : (
+            <div className="text-2xl text-cyan-500 mb-1">{userProfile.role}</div>
+          )}
+          <div className="text-xs text-slate-400">Role</div>
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-slate-900 border border-slate-800">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-slate-800">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="activity" className="data-[state=active]:bg-slate-800">
-            Activity
-          </TabsTrigger>
-          <TabsTrigger value="badges" className="data-[state=active]:bg-slate-800">
-            Badges
-          </TabsTrigger>
-        </TabsList>
+      {/* Completed Challenges */}
+      <Card className="p-6 bg-slate-900/50 border-slate-800">
+        <h2 className="text-xl text-white mb-6 flex items-center gap-2">
+          <Target className="w-5 h-5 text-cyan-500" />
+          Completed Challenges
+        </h2>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Challenge Progress */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h2 className="text-xl text-white mb-6 flex items-center gap-2">
-                <Target className="w-5 h-5 text-cyan-500" />
-                Challenge Progress by Category
-              </h2>
-              <div className="space-y-4">
-                {solvedChallenges.map((category) => (
-                  <div key={category.category}>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-slate-300">{category.category}</span>
-                      <span className="text-slate-400">
-                        {category.solved}/{category.total}
-                      </span>
-                    </div>
-                    <Progress
-                      value={(category.solved / category.total) * 100}
-                      className="bg-slate-800"
-                    />
-                  </div>
-                ))}
+        {loadingActivity ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-4 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
               </div>
-            </Card>
-
-            {/* Performance Metrics */}
-            <Card className="p-6 bg-slate-900/50 border-slate-800">
-              <h2 className="text-xl text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-cyan-500" />
-                Performance Metrics
-              </h2>
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-slate-400">Overall Skill Level</span>
-                    <span className="text-white">Intermediate</span>
-                  </div>
-                  <Progress value={65} className="bg-slate-800" />
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                    <span className="text-slate-400">Best Streak</span>
-                    <p className="text-xl text-white mt-1">12 days</p>
-                  </div>
-                  <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                    <span className="text-slate-400">Fastest Solve</span>
-                    <p className="text-xl text-white mt-1">8 min</p>
-                  </div>
-                </div>
-                <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Award className="w-5 h-5 text-cyan-500 mt-0.5" />
-                    <div>
-                      <h4 className="text-sm text-white mb-1">Next Milestone</h4>
-                      <p className="text-xs text-slate-400">
-                        Complete 2 more challenges to reach Advanced level
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="activity">
-          <Card className="p-6 bg-slate-900/50 border-slate-800">
-            <h2 className="text-xl text-white mb-6">Recent Activity</h2>
-            <div className="space-y-3">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="p-4 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        activity.type === 'challenge'
-                          ? 'bg-cyan-500/10'
-                          : 'bg-purple-500/10'
-                      }`}
-                    >
-                      {activity.type === 'challenge' ? (
-                        <Target className="w-5 h-5 text-cyan-500" />
-                      ) : (
-                        <Shield className="w-5 h-5 text-purple-500" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-white">{activity.title}</h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {activity.time}
-                        </span>
-                        {activity.points && (
-                          <span className="text-cyan-500">+{activity.points} pts</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {activity.status === 'completed' && (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="badges">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {badges.map((badge) => (
-              <Card
-                key={badge.id}
-                className={`p-6 text-center ${
-                  badge.earned
-                    ? 'bg-slate-900/50 border-cyan-500/50'
-                    : 'bg-slate-900/30 border-slate-800 opacity-50'
-                }`}
-              >
-                <div className="text-4xl mb-3">{badge.icon}</div>
-                <h3 className="text-white mb-1">{badge.name}</h3>
-                <p className="text-xs text-slate-400">{badge.description}</p>
-                {badge.earned && (
-                  <Badge
-                    variant="outline"
-                    className="border-emerald-500/50 text-emerald-500 mt-3"
-                  >
-                    Earned
-                  </Badge>
-                )}
-              </Card>
             ))}
           </div>
-        </TabsContent>
-      </Tabs>
+        ) : completedChallenges.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Target className="w-12 h-12 text-slate-700 mb-4" />
+            <p className="text-slate-400 mb-1">No completed challenges yet</p>
+            <p className="text-sm text-slate-500">Head to the Challenges page to start solving!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {completedChallenges.map((challenge) => (
+              <div
+                key={challenge.challenge_id}
+                className="p-4 bg-slate-950 border border-emerald-500/20 rounded-lg flex items-start justify-between gap-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Target className="w-4 h-4 text-cyan-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-white mb-1">{challenge.title}</h3>
+                    <p className="text-sm text-slate-400 line-clamp-2">{challenge.description}</p>
+                  </div>
+                </div>
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-1" />
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
